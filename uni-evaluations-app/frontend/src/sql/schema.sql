@@ -4,7 +4,9 @@ SET TIME ZONE 'UTC';
 create table if not exists public.users (
   user_id bigserial primary key,
   email varchar(255) unique not null,
-  created_at timestamptz not null default now()
+  matriculation_number varchar(50) not null,
+  created_at timestamptz not null default now(),
+  constraint users_matriculation_unique unique (matriculation_number)
 );
 
 create table if not exists public.courses (
@@ -25,27 +27,19 @@ create table if not exists public.evaluations (
 );
 
 -- Trigger-Funktion für updated_at (idempotent)
-do $$
+create or replace function public.set_timestamp()
+returns trigger as $$
 begin
-  if not exists (select 1 from pg_proc where proname = 'set_timestamp') then
-    create or replace function set_timestamp()
-    returns trigger as $$
-    begin
-      new.updated_at = now();
-      return new;
-    end;
-    $$ language plpgsql;
-  end if;
-end$$;
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
 
-do $$
-begin
-  if not exists (select 1 from pg_trigger where tgname = 'trg_set_timestamp_evaluations') then
-    create trigger trg_set_timestamp_evaluations
-    before update on public.evaluations
-    for each row execute function set_timestamp();
-  end if;
-end$$;
+drop trigger if exists trg_set_timestamp_evaluations on public.evaluations;
+
+create trigger trg_set_timestamp_evaluations
+before update on public.evaluations
+for each row execute function public.set_timestamp();
 
 -- Indizes
 create index if not exists idx_eval_course on public.evaluations(course_id);
