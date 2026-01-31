@@ -44,8 +44,20 @@ create table if not exists public.evaluations (
   rating int not null check (rating between 1 and 5),
   user_email text,
   modul_id uuid not null references public.modul(id) on delete cascade,
+  upvotes int not null default 0,
+  downvotes int not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint evaluations_votes_check check (upvotes >= 0 and downvotes >= 0)
+);
+
+create table if not exists public.evaluation_votes (
+  id bigserial primary key,
+  evaluation_id bigint not null references public.evaluations(evaluation_id) on delete cascade,
+  voter_id uuid not null references auth.users(id) on delete cascade,
+  vote smallint not null check (vote in (-1, 1)),
+  created_at timestamptz not null default now(),
+  constraint evaluation_votes_unique unique (evaluation_id, voter_id)
 );
 
 -- Trigger function for updated_at (idempotent)
@@ -66,3 +78,5 @@ for each row execute function public.set_timestamp();
 -- Indexes
 create index if not exists idx_eval_modul on public.evaluations(modul_id);
 create index if not exists idx_eval_user_email on public.evaluations(user_email);
+create index if not exists idx_eval_votes_evaluation on public.evaluation_votes(evaluation_id);
+create index if not exists idx_eval_votes_voter on public.evaluation_votes(voter_id);

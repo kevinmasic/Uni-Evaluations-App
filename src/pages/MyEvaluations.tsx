@@ -4,6 +4,13 @@ import { supabase } from '../utils/supabase';
 type Modul = { id: string; name: string; professor: string | null };
 type Evaluation = { evaluation_id: number; content: string; rating: number; modul_id: string; user_email: string };
 
+const noteClasses = ['note--1', 'note--2', 'note--3', 'note--4'];
+
+function getNoteClass(id: number) {
+  const index = Math.abs(Number(id)) % noteClasses.length;
+  return noteClasses[index];
+}
+
 export default function MyEvaluations() {
   const [meEmail, setMeEmail] = useState<string | null>(null);
   const [modules, setModules] = useState<Modul[]>([]);
@@ -98,20 +105,22 @@ export default function MyEvaluations() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('Bewertung wirklich loeschen?')) return;
+    if (!confirm('Bewertung wirklich löschen?')) return;
     const { error } = await supabase.from('evaluations').delete().eq('evaluation_id', id);
     if (error) return setError(error.message);
     setItems(prev => prev.filter(item => item.evaluation_id !== id));
   }
 
   if (loading) return <p>Lade...</p>;
-  if (error) return <p style={{ color: 'crimson' }}>Fehler: {error}</p>;
+  if (error) return <p className="error-text">Fehler: {error}</p>;
 
   return (
     <div className="card">
+      <span className="bubble bubble--peach bubble--sm">Mein Bereich</span>
       <h2>Meine Bewertungen</h2>
+      <p className="muted">Kurze, ehrliche Rückmeldung macht den Unterschied.</p>
 
-      <form onSubmit={form.id ? handleUpdate : handleCreate} style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+      <form onSubmit={form.id ? handleUpdate : handleCreate} className="form-grid">
         <div className="row">
           <select
             className="select"
@@ -119,7 +128,7 @@ export default function MyEvaluations() {
             onChange={event => setForm(state => ({ ...state, modul_id: event.target.value }))}
             required
           >
-            <option value="">Modul waehlen...</option>
+            <option value="">Modul wählen...</option>
             {modules.map(item => (
               <option key={item.id} value={item.id}>
                 {item.name}{item.professor ? ` - ${item.professor}` : ''}
@@ -149,8 +158,8 @@ export default function MyEvaluations() {
           required
         />
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="button" type="submit">{form.id ? 'Aendern' : 'Anlegen'}</button>
+        <div className="form-actions">
+          <button className="button" type="submit">{form.id ? 'Ändern' : 'Anlegen'}</button>
           {form.id && (
             <button type="button" className="button secondary" onClick={() => setForm({ modul_id: '', rating: '', content: '' })}>
               Abbrechen
@@ -160,7 +169,7 @@ export default function MyEvaluations() {
         </div>
       </form>
 
-      <ul className="list">
+      <ul className="notes-grid">
         {items.map(item => {
           const modul = moduleById.get(item.modul_id);
           const modulLabel = modul
@@ -168,16 +177,16 @@ export default function MyEvaluations() {
             : `Modul ${item.modul_id}`;
 
           return (
-            <li key={item.evaluation_id} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <li key={item.evaluation_id} className={`note ${getNoteClass(item.evaluation_id)}`}>
+              <div className="list-item__row">
                 <strong>#{item.evaluation_id}</strong>
                 <span className="badge">{item.rating}</span>
                 <span className="badge">{modulLabel}</span>
-                <span style={{ flex: 1 }} />
+                <span className="list-item__spacer" />
                 <button className="button secondary" onClick={() => startEdit(item)}>Bearbeiten</button>
-                <button className="button" onClick={() => handleDelete(item.evaluation_id)}>Loeschen</button>
+                <button className="button" onClick={() => handleDelete(item.evaluation_id)}>Löschen</button>
               </div>
-              <div style={{ marginTop: 6 }}>{item.content}</div>
+              <div className="note__content">{item.content}</div>
             </li>
           );
         })}

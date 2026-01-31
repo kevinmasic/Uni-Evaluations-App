@@ -6,6 +6,20 @@ import SelectEvaluationModal from './SelectEvaluationModal.jsx';
 export default function NavBar() {
   const [userEmail, setUserEmail] = useState(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const initialTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(initialTheme);
+    document.documentElement.dataset.theme = initialTheme;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     let active = true;
@@ -35,15 +49,27 @@ export default function NavBar() {
     location.href = '/';
   }
 
+  function toggleTheme() {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }
+
   return (
     <>
       <nav className="nav">
-        <Link to="/">Home</Link>
+        <Link to="/" className="nav-link">Home</Link>
         <button type="button" className="button secondary" onClick={() => setIsSelectOpen(true)}>
-          Ansehen
+          Evaluation ansehen
         </button>
-        <Link to="/me">Meine Bewertungen</Link>
-        <span style={{ flex: 1 }} />
+        <Link to="/me" className="nav-link">Meine Bewertungen</Link>
+        <span className="nav-spacer" />
+        <button
+          type="button"
+          className="button secondary"
+          onClick={toggleTheme}
+          aria-pressed={theme === 'dark'}
+        >
+          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </button>
         {userEmail ? (
           <>
             <span className="badge" title={userEmail}>{userEmail}</span>

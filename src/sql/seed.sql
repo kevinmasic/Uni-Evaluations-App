@@ -1,3 +1,8 @@
+-- Seed data for demo usage.
+-- Clears data in modul/evaluations/users but keeps standort/studiengang/semester.
+
+truncate table public.evaluation_votes, public.evaluations, public.modul, public.users restart identity;
+
 insert into public.standort (name) values
   ('Lippstadt'),
   ('Hamm')
@@ -51,43 +56,85 @@ where not exists (
   where sem.nummer = gs
 );
 
-insert into public.modul (studiengang_id, semester_id, name, kuerzel, professor)
-select sg.id, sem.id, sg.name || ' Modul S' || sem.nummer, null, null
-from public.studiengang sg
-join public.semester sem on sem.nummer between 1 and 7
-where not exists (
-  select 1
-  from public.modul m
-  where m.studiengang_id = sg.id
-    and m.semester_id = sem.id
-    and m.name = sg.name || ' Modul S' || sem.nummer
-);
-
-insert into public.users (email, matriculation_number) values
-  ('anna.schmidt@example.edu', '20240001'),
-  ('benjamin.meier@example.edu', '20240002'),
-  ('carla.wolf@example.edu', '20240003'),
-  ('david.bauer@example.edu', '20240004'),
-  ('eva.schneider@example.edu', '20240005'),
-  ('felix.koenig@example.edu', '20240006'),
-  ('greta.mayer@example.edu', '20240007'),
-  ('henrik.fischer@example.edu', '20240008'),
-  ('isabel.hartmann@example.edu', '20240009'),
-  ('jonas.weber@example.edu', '20240010')
+with users(email, matriculation_number) as (
+  values
+    ('student01@example.edu', '20240001'),
+    ('student02@example.edu', '20240002'),
+    ('student03@example.edu', '20240003'),
+    ('student04@example.edu', '20240004'),
+    ('student05@example.edu', '20240005'),
+    ('student06@example.edu', '20240006'),
+    ('student07@example.edu', '20240007'),
+    ('student08@example.edu', '20240008'),
+    ('student09@example.edu', '20240009'),
+    ('student10@example.edu', '20240010')
+)
+insert into public.users (email, matriculation_number)
+select email, matriculation_number
+from users
 on conflict (email) do nothing;
 
-insert into public.evaluations (content, rating, user_email, modul_id)
-select 'Gute Inhalte und klare Erklaerungen.', 5, 'anna.schmidt@example.edu', m.id
-from public.modul m
-join public.studiengang sg on sg.id = m.studiengang_id
-where sg.name = 'Angewandte Informatik und Soziale Medien'
-  and m.name = sg.name || ' Modul S1'
-limit 1;
+with module_seed as (
+  select
+    sg.id as studiengang_id,
+    sem.id as semester_id,
+    sem.nummer,
+    gs as module_index
+  from public.studiengang sg
+  cross join public.semester sem
+  cross join generate_series(1, 3) as gs
+),
+professors as (
+  select array[
+    'Prof. Dr. Klein',
+    'Prof. Dr. Nguyen',
+    'Dr. Schneider',
+    'Dr. Hoffmann',
+    'Prof. Dr. Wagner'
+  ] as names
+)
+insert into public.modul (studiengang_id, semester_id, name, kuerzel, professor)
+select
+  ms.studiengang_id,
+  ms.semester_id,
+  format('%s S%s Modul %s', sg.name, ms.nummer, ms.module_index),
+  format('S%sM%s', ms.nummer, ms.module_index),
+  (select names[1 + ((ms.module_index + ms.nummer) % array_length(names, 1))] from professors)
+from module_seed ms
+join public.studiengang sg on sg.id = ms.studiengang_id;
 
-insert into public.evaluations (content, rating, user_email, modul_id)
-select 'Etwas zu schnell, aber fair bewertet.', 3, 'benjamin.meier@example.edu', m.id
+with user_list as (
+  select array_agg(email order by email) as emails
+  from public.users
+),
+phrases as (
+  select array[
+    'Klar strukturiert und gut erklärt.',
+    'Gute Beispiele, faire Bewertung.',
+    'Tempo ok, Inhalte hilfreich.',
+    'Mehr Praxis wäre top.',
+    'Sehr gut organisiert.',
+    'Interaktiv und nachvollziehbar.',
+    'Starker Bezug zur Praxis.',
+    'Folien könnten kompakter sein.',
+    'Gute Mischung aus Theorie und Praxis.',
+    'Freundliche Betreuung.'
+  ] as texts
+)
+insert into public.evaluations (content, rating, user_email, modul_id, created_at)
+select
+  phrases.texts[1 + ((ev_idx - 1) % array_length(phrases.texts, 1))],
+  1 + floor(random() * 5)::int,
+  user_list.emails[1 + ((ev_idx - 1) % array_length(user_list.emails, 1))],
+  m.id,
+  now() - (random() * 120 || ' days')::interval
 from public.modul m
-join public.studiengang sg on sg.id = m.studiengang_id
-where sg.name = 'Biomedizinische Technologie'
-  and m.name = sg.name || ' Modul S1'
-limit 1;
+cross join generate_series(1, 10) as ev_idx
+cross join user_list
+cross join phrases;
+
+-- Seed vote counts for sorting and color intensity.
+update public.evaluations
+set
+  upvotes = (rating * 2) + floor(random() * 6)::int,
+  downvotes = (6 - rating) + floor(random() * 3)::int;

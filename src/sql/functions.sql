@@ -17,3 +17,43 @@ as $$
 $$;
 
 grant execute on function public.verify_user_credentials(text, text) to anon, authenticated;
+
+-- Casts a single up/down vote on an evaluation.
+create or replace function public.cast_evaluation_vote(p_evaluation_id bigint, p_vote smallint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid;
+begin
+  v_uid := auth.uid();
+  if v_uid is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if p_vote not in (-1, 1) then
+    raise exception 'Invalid vote';
+  end if;
+
+  if exists (
+    select 1
+    from public.evaluation_votes
+    where evaluation_id = p_evaluation_id
+      and voter_id = v_uid
+  ) then
+    raise exception 'Already voted';
+  end if;
+
+  insert into public.evaluation_votes (evaluation_id, voter_id, vote)
+  values (p_evaluation_id, v_uid, p_vote);
+
+  update public.evaluations
+  set upvotes = upvotes + case when p_vote = 1 then 1 else 0 end,
+      downvotes = downvotes + case when p_vote = -1 then 1 else 0 end
+  where evaluation_id = p_evaluation_id;
+end;
+$$;
+
+grant execute on function public.cast_evaluation_vote(bigint, smallint) to authenticated;

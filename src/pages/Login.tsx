@@ -11,7 +11,7 @@ export default function Login() {
     const cleanEmail = email.trim().toLowerCase();
     const cleanMatriculation = matriculation.trim();
 
-    setStatus('Prüfe Zugang…');
+    setStatus('Pr�fe Zugang...');
     const { data: isAllowed, error: verifyError } = await supabase.rpc('verify_user_credentials', {
       p_email: cleanEmail,
       p_matriculation: cleanMatriculation
@@ -27,7 +27,7 @@ export default function Login() {
       return;
     }
 
-    setStatus('Sende Magic Link…');
+    setStatus('Sende Magic Link...');
     const { error } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
       options: { emailRedirectTo: window.location.origin, shouldCreateUser: false }
@@ -43,9 +43,11 @@ export default function Login() {
   }, []);
 
   return (
-    <div className="card">
-      <h2>Login (Magic Link)</h2>
-      <form onSubmit={sendMagicLink} style={{ display: 'grid', gap: 12, maxWidth: 420 }}>
+    <div className="card card--narrow">
+      <span className="bubble bubble--mint bubble--sm">Login</span>
+      <h2>Login per Magic Link</h2>
+      <p className="muted">Schnell, sicher, ohne Passwort.</p>
+      <form onSubmit={sendMagicLink} className="form-grid">
         <input
           className="input"
           type="email"

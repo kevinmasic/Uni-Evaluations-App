@@ -202,50 +202,21 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div
-      role="presentation"
-      onClick={handleClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(17, 17, 17, 0.35)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        zIndex: 50
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={event => event.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: 16,
-          padding: 28,
-          minWidth: 280,
-          maxWidth: 520,
-          width: '100%',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: 8, textAlign: 'center' }}>Evaluationen ansehen</h3>
-        <p style={{ marginTop: 0, marginBottom: 16, textAlign: 'center', opacity: 0.7 }}>
-          Standort, Studiengang, Semester und Modul auswaehlen.
-        </p>
+    <div className="modal-overlay" role="presentation" onClick={handleClose}>
+      <div className="modal" role="dialog" aria-modal="true" onClick={event => event.stopPropagation()}>
+        <span className="bubble bubble--mint bubble--sm">Auswahl</span>
+        <h3>Evaluationen ansehen</h3>
+        <p className="muted">Standort, Abschluss, Studiengang, Semester und Modul auswählen.</p>
 
-        {error && <p style={{ color: 'crimson', marginTop: 0 }}>Fehler: {error}</p>}
+        {error && <p className="error-text">Fehler: {error}</p>}
 
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="form-grid">
           <select
             className="select"
             value={selectedStandortId}
             onChange={event => handleSelectStandort(event.target.value)}
           >
-            <option value="">{loadingStandorte ? 'Lade Standorte...' : 'Standort waehlen'}</option>
+            <option value="">{loadingStandorte ? 'Lade Standorte...' : 'Standort wählen'}</option>
             {standorte.map(item => (
               <option key={item.id} value={item.id}>{item.name}</option>
             ))}
@@ -257,7 +228,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
             onChange={event => handleSelectAbschluss(event.target.value)}
             disabled={!selectedStandortId}
           >
-            <option value="">{selectedStandortId ? 'Abschluss waehlen' : 'Bitte erst Standort waehlen'}</option>
+            <option value="">{selectedStandortId ? 'Abschluss wählen' : 'Bitte erst Standort wählen'}</option>
             <option value="Bachelor">Bachelor</option>
             <option value="Master">Master</option>
           </select>
@@ -270,10 +241,10 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
           >
             <option value="">
               {!selectedStandortId
-                ? 'Bitte erst Standort waehlen'
+                ? 'Bitte erst Standort wählen'
                 : (!selectedAbschluss
-                  ? 'Bitte erst Abschluss waehlen'
-                  : (loadingStudiengaenge ? 'Lade Studiengaenge...' : 'Studiengang waehlen'))}
+                  ? 'Bitte erst Abschluss wählen'
+                  : (loadingStudiengaenge ? 'Lade Studiengänge...' : 'Studiengang wählen'))}
             </option>
             {studiengaenge.map(item => (
               <option key={item.id} value={item.id}>{item.name}</option>
@@ -288,8 +259,8 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
           >
             <option value="">
               {!selectedStudiengangId
-                ? 'Bitte erst Studiengang waehlen'
-                : (loadingSemester ? 'Lade Semester...' : 'Semester waehlen')}
+                ? 'Bitte erst Studiengang wählen'
+                : (loadingSemester ? 'Lade Semester...' : 'Semester wählen')}
             </option>
             {semesterList.map(item => (
               <option key={item.id} value={item.id}>
@@ -306,8 +277,8 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
           >
             <option value="">
               {!selectedSemesterId
-                ? 'Bitte erst Semester waehlen'
-                : (loadingModule ? 'Lade Module...' : 'Modul waehlen')}
+                ? 'Bitte erst Semester wählen'
+                : (loadingModule ? 'Lade Module...' : 'Modul wählen')}
             </option>
             {moduleList.map(item => (
               <option key={item.id} value={item.id}>
@@ -317,16 +288,11 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'space-between' }}>
+        <div className="modal__footer">
           <button type="button" className="button secondary" onClick={handleClose}>
             Schliessen
           </button>
-          <button
-            type="button"
-            className="button"
-            onClick={handleGoToEvaluations}
-            disabled={!selectedModulId}
-          >
+          <button type="button" className="button" onClick={handleGoToEvaluations} disabled={!selectedModulId}>
             Ansehen
           </button>
         </div>

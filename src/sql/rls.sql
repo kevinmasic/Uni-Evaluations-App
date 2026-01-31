@@ -50,3 +50,15 @@ create policy "eval update own"
 create policy "eval delete own"
   on public.evaluations for delete
   using (auth.email() = user_email);
+
+alter table public.evaluation_votes enable row level security;
+drop policy if exists "eval votes read own" on public.evaluation_votes;
+drop policy if exists "eval votes insert own" on public.evaluation_votes;
+
+create policy "eval votes read own"
+  on public.evaluation_votes for select
+  using (auth.uid() = voter_id);
+
+create policy "eval votes insert own"
+  on public.evaluation_votes for insert
+  with check (auth.uid() = voter_id);

@@ -120,6 +120,26 @@ end $$;
 alter table public.evaluations
   add column if not exists modul_id uuid;
 
+alter table public.evaluations
+  add column if not exists upvotes int not null default 0;
+
+alter table public.evaluations
+  add column if not exists downvotes int not null default 0;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'evaluations_votes_check'
+      and conrelid = 'public.evaluations'::regclass
+  ) then
+    alter table public.evaluations
+      add constraint evaluations_votes_check
+      check (upvotes >= 0 and downvotes >= 0);
+  end if;
+end $$;
+
 do $$
 begin
   if not exists (
@@ -136,6 +156,18 @@ end $$;
 
 create index if not exists idx_eval_modul on public.evaluations(modul_id);
 drop index if exists idx_eval_course;
+
+create table if not exists public.evaluation_votes (
+  id bigserial primary key,
+  evaluation_id bigint not null references public.evaluations(evaluation_id) on delete cascade,
+  voter_id uuid not null references auth.users(id) on delete cascade,
+  vote smallint not null check (vote in (-1, 1)),
+  created_at timestamptz not null default now(),
+  constraint evaluation_votes_unique unique (evaluation_id, voter_id)
+);
+
+create index if not exists idx_eval_votes_evaluation on public.evaluation_votes(evaluation_id);
+create index if not exists idx_eval_votes_voter on public.evaluation_votes(voter_id);
 
 -- 3) Optional: migrate existing courses -> modul (safe to run multiple times)
 -- This creates placeholder rows so existing course-based evaluations can be mapped.

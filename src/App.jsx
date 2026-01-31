@@ -9,12 +9,15 @@ export default function App() {
 
   return (
     <div className={containerClassName}>
-      {!isHome && <NavBar />}
+      <NavBar />
       <RoutesConfig />
-      <footer style={{ marginTop: 32, opacity: 0.6 }}>
-        <small>
-          <Link to="/">Home</Link> · <Link to="/me">Meine Bewertungen</Link>
-        </small>
+      <footer className="footer">
+        <div className="footer__nav">
+          <Link to="/">Home</Link>
+          <Link to="/me">Meine Bewertungen</Link>
+          <Link to="/login">Login</Link>
+        </div>
+        <small>Copyright 2026 Hochschule</small>
       </footer>
     </div>
   );
