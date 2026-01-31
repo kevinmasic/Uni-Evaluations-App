@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SelectEvaluationModal from '../components/SelectEvaluationModal.jsx';
 
 export default function Home() {
-  const [isCampusOpen, setIsCampusOpen] = useState(false);
-  const openCampusModal = () => setIsCampusOpen(true);
-  const closeCampusModal = () => setIsCampusOpen(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+
+  const openSelectModal = () => setIsSelectOpen(true);
+  const closeSelectModal = () => setIsSelectOpen(false);
 
   return (
     <div style={{ display: 'grid', gap: 20, width: '100%' }}>
@@ -46,7 +48,7 @@ export default function Home() {
           type="button"
           className="button secondary"
           style={{ padding: '18px 28px', fontSize: 18, minWidth: 220, textAlign: 'center' }}
-          onClick={openCampusModal}
+          onClick={openSelectModal}
         >
           Angucken
         </button>
@@ -59,59 +61,7 @@ export default function Home() {
         </Link>
       </div>
 
-      {isCampusOpen && (
-        <div
-          role="presentation"
-          onClick={closeCampusModal}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(17, 17, 17, 0.35)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-            zIndex: 50
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            onClick={event => event.stopPropagation()}
-            style={{
-              background: '#fff',
-              borderRadius: 16,
-              padding: 28,
-              minWidth: 280,
-              maxWidth: 420,
-              width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-            }}
-          >
-            <h3 style={{ marginTop: 0, marginBottom: 16, textAlign: 'center' }}>Standort waehlen</h3>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link
-                to="/courses?campus=lippstadt"
-                className="button secondary"
-                style={{ padding: '16px 20px', fontSize: 16, textAlign: 'center', borderRadius: 0, minWidth: 140 }}
-                onClick={closeCampusModal}
-              >
-                Lippstadt
-              </Link>
-              <Link
-                to="/courses?campus=hamm"
-                className="button"
-                style={{ padding: '16px 20px', fontSize: 16, textAlign: 'center', borderRadius: 0, minWidth: 140 }}
-                onClick={closeCampusModal}
-              >
-                Hamm
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <SelectEvaluationModal isOpen={isSelectOpen} onClose={closeSelectModal} />
 
     </div>
   );

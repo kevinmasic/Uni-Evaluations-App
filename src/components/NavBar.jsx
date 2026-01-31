@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
+import SelectEvaluationModal from './SelectEvaluationModal.jsx';
 
 export default function NavBar() {
   const [userEmail, setUserEmail] = useState(null);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -34,19 +36,24 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="nav">
-      <Link to="/">Home</Link>
-      <Link to="/courses">Kurse</Link>
-      <Link to="/me">Meine Bewertungen</Link>
-      <span style={{ flex: 1 }} />
-      {userEmail ? (
-        <>
-          <span className="badge" title={userEmail}>{userEmail}</span>
-          <button className="button" onClick={handleLogout}>Logout</button>
-        </>
-      ) : (
-        <Link to="/login" className="button secondary">Login</Link>
-      )}
-    </nav>
+    <>
+      <nav className="nav">
+        <Link to="/">Home</Link>
+        <button type="button" className="button secondary" onClick={() => setIsSelectOpen(true)}>
+          Ansehen
+        </button>
+        <Link to="/me">Meine Bewertungen</Link>
+        <span style={{ flex: 1 }} />
+        {userEmail ? (
+          <>
+            <span className="badge" title={userEmail}>{userEmail}</span>
+            <button className="button" onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <Link to="/login" className="button secondary">Login</Link>
+        )}
+      </nav>
+      <SelectEvaluationModal isOpen={isSelectOpen} onClose={() => setIsSelectOpen(false)} />
+    </>
   );
 }

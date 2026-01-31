@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
-import Courses from './pages/Courses.tsx';
+import Evaluations from './pages/Evaluations.tsx';
 import Login from './pages/Login.tsx';
 import MyEvaluations from './pages/MyEvaluations.tsx';
 import NotFound from './pages/NotFound.jsx';
@@ -11,7 +11,7 @@ export default function RoutesConfig() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/courses" element={<Courses />} />
+      <Route path="/evaluations/:modulId" element={<Evaluations />} />
       <Route
         path="/me"
         element={

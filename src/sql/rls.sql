@@ -1,18 +1,42 @@
-alter table public.courses enable row level security;
-drop policy if exists "courses are readable by anyone" on public.courses;
-create policy "courses are readable by anyone"
-  on public.courses for select
+alter table public.users enable row level security;
+drop policy if exists "users read own" on public.users;
+create policy "users read own"
+  on public.users for select
+  using (auth.email() = email);
+
+alter table public.standort enable row level security;
+drop policy if exists "standort read all" on public.standort;
+create policy "standort read all"
+  on public.standort for select
+  using (true);
+
+alter table public.studiengang enable row level security;
+drop policy if exists "studiengang read all" on public.studiengang;
+create policy "studiengang read all"
+  on public.studiengang for select
+  using (true);
+
+alter table public.semester enable row level security;
+drop policy if exists "semester read all" on public.semester;
+create policy "semester read all"
+  on public.semester for select
+  using (true);
+
+alter table public.modul enable row level security;
+drop policy if exists "modul read all" on public.modul;
+create policy "modul read all"
+  on public.modul for select
   using (true);
 
 alter table public.evaluations enable row level security;
-drop policy if exists "eval select own" on public.evaluations;
+drop policy if exists "eval select public" on public.evaluations;
 drop policy if exists "eval insert own" on public.evaluations;
 drop policy if exists "eval update own" on public.evaluations;
 drop policy if exists "eval delete own" on public.evaluations;
 
-create policy "eval select own"
+create policy "eval select public"
   on public.evaluations for select
-  using (auth.email() = user_email);
+  using (true);
 
 create policy "eval insert own"
   on public.evaluations for insert
