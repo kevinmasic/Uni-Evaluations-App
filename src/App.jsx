@@ -21,7 +21,6 @@ export default function App() {
           {userEmail && <Link to="/me">Meine Evaluationen</Link>}
           {!userEmail && <Link to="/login">Login</Link>}
         </div>
-        <small>Copyright 2026 Hochschule</small>
       </footer>
     </div>
   );

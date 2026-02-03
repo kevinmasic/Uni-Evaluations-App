@@ -120,7 +120,7 @@ export default function WriteEvaluation() {
 
         <div className="form-actions">
           <button className="button" type="submit" disabled={!canSubmit}>Evaluation senden</button>
-          <span className="badge" title="Deine E-Mail">{userEmail}</span>
+          <span className="badge badge--truncate" title="Deine E-Mail">{userEmail}</span>
         </div>
       </form>
 

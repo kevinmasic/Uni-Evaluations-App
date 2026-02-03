@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export default function NavBar() {
   const { userEmail } = useAuth();
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState('light');
   const location = useLocation();
   const isWriteActive = location.pathname === '/evaluation-schreiben';
@@ -25,6 +26,10 @@ export default function NavBar() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     location.href = '/';
@@ -36,39 +41,63 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="nav">
-        <Link to="/" className="nav-link">Home</Link>
-        <button type="button" className="button secondary" onClick={() => setIsSelectOpen(true)}>
-          Evaluationen ansehen
-        </button>
-        <Link
-          to="/evaluation-schreiben"
-          className={`button secondary nav-pill${isWriteActive ? ' nav-pill--active' : ''}`}
-        >
-          Evaluation schreiben
-        </Link>
-        {userEmail && (
-          <Link to="/me" className={`button secondary nav-pill${isMeActive ? ' nav-pill--active' : ''}`}>
-            Meine Evaluationen
-          </Link>
-        )}
-        <span className="nav-spacer" />
+      <nav className={`nav${isMenuOpen ? ' nav--open' : ''}`}>
         <button
           type="button"
-          className="button secondary"
-          onClick={toggleTheme}
-          aria-pressed={theme === 'dark'}
+          className="button secondary nav-toggle"
+          onClick={() => setIsMenuOpen(prev => !prev)}
+          aria-expanded={isMenuOpen}
+          aria-controls="main-navigation"
         >
-          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          <span className="nav-toggle__icon" aria-hidden="true" />
+          <span className="nav-toggle__label">{isMenuOpen ? 'Menü schließen' : 'Menü'}</span>
         </button>
-        {userEmail ? (
-          <>
-            <span className="badge" title={userEmail}>{userEmail}</span>
-            <button className="button" onClick={handleLogout}>Logout</button>
-          </>
-        ) : (
-          <Link to="/login" className="button secondary">Login</Link>
-        )}
+        <div className="nav-menu" id="main-navigation">
+          <Link to="/" className="nav-link" onClick={() => setIsMenuOpen(false)}>Home</Link>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => {
+              setIsSelectOpen(true);
+              setIsMenuOpen(false);
+            }}
+          >
+            Evaluationen ansehen
+          </button>
+          <Link
+            to="/evaluation-schreiben"
+            className={`button secondary nav-pill${isWriteActive ? ' nav-pill--active' : ''}`}
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Evaluation schreiben
+          </Link>
+          {userEmail && (
+            <Link
+              to="/me"
+              className={`button secondary nav-pill${isMeActive ? ' nav-pill--active' : ''}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Meine Evaluationen
+            </Link>
+          )}
+          <span className="nav-spacer" />
+          <button
+            type="button"
+            className="button secondary"
+            onClick={toggleTheme}
+            aria-pressed={theme === 'dark'}
+          >
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          {userEmail ? (
+            <>
+              <span className="badge badge--truncate" title={userEmail}>{userEmail}</span>
+              <button className="button" onClick={handleLogout}>Logout</button>
+            </>
+          ) : (
+            <Link to="/login" className="button secondary" onClick={() => setIsMenuOpen(false)}>Login</Link>
+          )}
+        </div>
       </nav>
       <SelectEvaluationModal isOpen={isSelectOpen} onClose={() => setIsSelectOpen(false)} />
     </>
