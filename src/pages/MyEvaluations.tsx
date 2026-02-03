@@ -1,111 +1,81 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
 
 type Modul = { id: string; name: string; professor: string | null };
-type Evaluation = { evaluation_id: number; content: string; rating: number; modul_id: string; user_email: string };
+type Evaluation = {
+  evaluation_id: number;
+  content: string;
+  modul_id: string;
+  user_email: string;
+  created_at: string;
+  upvotes: number;
+  downvotes: number;
+};
 
-const noteClasses = ['note--1', 'note--2', 'note--3', 'note--4'];
-
-function getNoteClass(id: number) {
-  const index = Math.abs(Number(id)) % noteClasses.length;
-  return noteClasses[index];
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('de-DE', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 export default function MyEvaluations() {
-  const [meEmail, setMeEmail] = useState<string | null>(null);
   const [modules, setModules] = useState<Modul[]>([]);
   const [items, setItems] = useState<Evaluation[]>([]);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<{ id?: number; modul_id: string; rating: number | ''; content: string }>({
-    modul_id: '',
-    rating: '',
-    content: ''
-  });
   const [error, setError] = useState<string | null>(null);
+  const [listSort, setListSort] = useState<'date' | 'score-high' | 'score-low'>('date');
+  const { userEmail, loading: authLoading } = useAuth();
 
-  const canSubmit = useMemo(() => Boolean(form.modul_id && form.rating && form.content.trim().length > 0), [form]);
   const moduleById = useMemo(() => new Map(modules.map(item => [item.id, item])), [modules]);
+  const sortedItems = useMemo(() => {
+    const list = [...items];
+    list.sort((a, b) => {
+      if (listSort === 'date') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      const scoreA = (a.upvotes ?? 0) - (a.downvotes ?? 0);
+      const scoreB = (b.upvotes ?? 0) - (b.downvotes ?? 0);
+      const diff = scoreB - scoreA;
+      if (diff !== 0) return listSort === 'score-high' ? diff : -diff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return list;
+  }, [items, listSort]);
 
   useEffect(() => {
     (async () => {
-      const [{ data: userData }, modulesRes] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from('modul').select('id,name,professor').order('name', { ascending: true })
-      ]);
+      if (authLoading) return;
+      setLoading(true);
+      setError(null);
 
-      const email = userData.user?.email ?? null;
-      setMeEmail(email);
-
-      if (modulesRes.error) setError(modulesRes.error.message);
-      else setModules(modulesRes.data || []);
-
-      if (!email) {
+      if (!userEmail) {
         setError('Nicht eingeloggt');
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('evaluations')
-        .select('evaluation_id, content, rating, modul_id, user_email')
-        .eq('user_email', email)
-        .order('evaluation_id', { ascending: false });
+      const [modulesRes, evalRes] = await Promise.all([
+        supabase.from('modul').select('id,name,professor').order('name', { ascending: true }),
+        supabase
+          .from('evaluations')
+          .select('evaluation_id, content, modul_id, user_email, created_at, upvotes, downvotes')
+          .eq('user_email', userEmail)
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (error) setError(error.message);
-      else setItems(data || []);
+      if (modulesRes.error) setError(modulesRes.error.message);
+      else setModules(modulesRes.data || []);
+
+      if (evalRes.error) setError(evalRes.error.message);
+      else setItems(evalRes.data || []);
+
       setLoading(false);
     })();
-  }, []);
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!meEmail) return setError('Nicht eingeloggt');
-    if (!canSubmit) return;
-
-    const { data, error } = await supabase
-      .from('evaluations')
-      .insert({
-        content: String(form.content).trim(),
-        rating: Number(form.rating),
-        modul_id: form.modul_id,
-        user_email: meEmail
-      })
-      .select('evaluation_id, content, rating, modul_id, user_email')
-      .single();
-
-    if (error) return setError(error.message);
-    setItems(prev => (data ? [data, ...prev] : prev));
-    setForm({ modul_id: '', rating: '', content: '' });
-    setError(null);
-  }
-
-  function startEdit(ev: Evaluation) {
-    setForm({ id: ev.evaluation_id, modul_id: ev.modul_id, rating: ev.rating, content: ev.content });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!meEmail || !form.id) return;
-    const { data, error } = await supabase
-      .from('evaluations')
-      .update({
-        content: String(form.content).trim(),
-        rating: Number(form.rating),
-        modul_id: form.modul_id
-      })
-      .eq('evaluation_id', form.id)
-      .select('evaluation_id, content, rating, modul_id, user_email')
-      .single();
-
-    if (error) return setError(error.message);
-    setItems(prev => prev.map(item => (item.evaluation_id === form.id ? (data as Evaluation) : item)));
-    setForm({ modul_id: '', rating: '', content: '' });
-    setError(null);
-  }
+  }, [authLoading, userEmail]);
 
   async function handleDelete(id: number) {
-    if (!confirm('Bewertung wirklich löschen?')) return;
     const { error } = await supabase.from('evaluations').delete().eq('evaluation_id', id);
     if (error) return setError(error.message);
     setItems(prev => prev.filter(item => item.evaluation_id !== id));
@@ -116,81 +86,81 @@ export default function MyEvaluations() {
 
   return (
     <div className="card">
-      <span className="bubble bubble--peach bubble--sm">Mein Bereich</span>
-      <h2>Meine Bewertungen</h2>
-      <p className="muted">Kurze, ehrliche Rückmeldung macht den Unterschied.</p>
+      <h2>Meine Evaluationen</h2>
+      <p className="muted">Deine abgegebenen Evaluationen im Überblick.</p>
 
-      <form onSubmit={form.id ? handleUpdate : handleCreate} className="form-grid">
-        <div className="row">
-          <select
-            className="select"
-            value={form.modul_id}
-            onChange={event => setForm(state => ({ ...state, modul_id: event.target.value }))}
-            required
-          >
-            <option value="">Modul wählen...</option>
-            {modules.map(item => (
-              <option key={item.id} value={item.id}>
-                {item.name}{item.professor ? ` - ${item.professor}` : ''}
-              </option>
-            ))}
-          </select>
+      {items.length === 0 ? (
+        <p>Noch keine Evaluationen vorhanden.</p>
+      ) : (
+        <div className="evaluations-panel evaluations-panel--list">
+          <div className="evaluations-filter">
+            <label className="evaluations-filter__label" htmlFor="my-evaluations-sort">
+              Sortieren nach
+            </label>
+            <select
+              id="my-evaluations-sort"
+              className="select evaluations-filter__select"
+              value={listSort}
+              onChange={event => setListSort(event.target.value as typeof listSort)}
+            >
+              <option value="date">Datum (neueste zuerst)</option>
+              <option value="score-high">Voting-Score (höchster zuerst)</option>
+              <option value="score-low">Voting-Score (niedrigster zuerst)</option>
+            </select>
+          </div>
+          <ul className="list list--cards evaluations-list">
+            {sortedItems.map(item => {
+              const modul = moduleById.get(item.modul_id);
+              const modulLabel = modul
+                ? `${modul.name}${modul.professor ? ` - ${modul.professor}` : ''}`
+                : `Modul ${item.modul_id}`;
 
-          <select
-            className="select"
-            value={form.rating}
-            onChange={event => setForm(state => ({ ...state, rating: event.target.value ? Number(event.target.value) : '' }))}
-            required
-          >
-            <option value="">Rating...</option>
-            {[1, 2, 3, 4, 5].map(rating => (
-              <option key={rating} value={rating}>{rating}</option>
-            ))}
-          </select>
+              return (
+                <li key={item.evaluation_id} className="evaluations-list__item">
+                  <div className="evaluations-list__content">{item.content}</div>
+                  <div className="evaluations-list__meta">
+                    <div className="list-item__row">
+                      <span className="badge">{modulLabel}</span>
+                      <span className="badge">{formatDate(item.created_at)}</span>
+                    </div>
+                    <div className="list-item__row">
+                      <div className="note__votes note__votes--static">
+                        <span className="vote-icon vote-icon--up" aria-hidden="true" />
+                        <span className="vote-count">{item.upvotes}</span>
+                        <span className="vote-icon vote-icon--down" aria-hidden="true" />
+                        <span className="vote-count">{item.downvotes}</span>
+                      </div>
+                      <button className="button" onClick={() => setConfirmId(item.evaluation_id)}>Löschen</button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
+      )}
 
-        <textarea
-          className="input"
-          placeholder="Kurzfeedback..."
-          rows={4}
-          value={form.content}
-          onChange={event => setForm(state => ({ ...state, content: event.target.value }))}
-          required
-        />
-
-        <div className="form-actions">
-          <button className="button" type="submit">{form.id ? 'Ändern' : 'Anlegen'}</button>
-          {form.id && (
-            <button type="button" className="button secondary" onClick={() => setForm({ modul_id: '', rating: '', content: '' })}>
-              Abbrechen
-            </button>
-          )}
-          <span className="badge" title="Deine E-Mail">{meEmail}</span>
+      {confirmId !== null && (
+        <div className="modal-overlay" role="presentation" onClick={() => setConfirmId(null)}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={event => event.stopPropagation()}>
+            <h3>Eintrag löschen?</h3>
+            <p className="muted">Willst du diese Evaluation wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+            <div className="modal__footer">
+              <button className="button secondary" onClick={() => setConfirmId(null)}>Abbrechen</button>
+              <button
+                className="button"
+                onClick={() => {
+                  const id = confirmId;
+                  setConfirmId(null);
+                  if (id !== null) handleDelete(id);
+                }}
+              >
+                Löschen
+              </button>
+            </div>
+          </div>
         </div>
-      </form>
-
-      <ul className="notes-grid">
-        {items.map(item => {
-          const modul = moduleById.get(item.modul_id);
-          const modulLabel = modul
-            ? `${modul.name}${modul.professor ? ` - ${modul.professor}` : ''}`
-            : `Modul ${item.modul_id}`;
-
-          return (
-            <li key={item.evaluation_id} className={`note ${getNoteClass(item.evaluation_id)}`}>
-              <div className="list-item__row">
-                <strong>#{item.evaluation_id}</strong>
-                <span className="badge">{item.rating}</span>
-                <span className="badge">{modulLabel}</span>
-                <span className="list-item__spacer" />
-                <button className="button secondary" onClick={() => startEdit(item)}>Bearbeiten</button>
-                <button className="button" onClick={() => handleDelete(item.evaluation_id)}>Löschen</button>
-              </div>
-              <div className="note__content">{item.content}</div>
-            </li>
-          );
-        })}
-      </ul>
+      )}
     </div>
   );
 }

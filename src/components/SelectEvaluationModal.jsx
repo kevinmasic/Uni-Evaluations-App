@@ -204,7 +204,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
   return (
     <div className="modal-overlay" role="presentation" onClick={handleClose}>
       <div className="modal" role="dialog" aria-modal="true" onClick={event => event.stopPropagation()}>
-        <span className="bubble bubble--mint bubble--sm">Auswahl</span>
+        
         <h3>Evaluationen ansehen</h3>
         <p className="muted">Standort, Abschluss, Studiengang, Semester und Modul auswählen.</p>
 

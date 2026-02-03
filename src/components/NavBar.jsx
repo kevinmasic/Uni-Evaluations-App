@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import SelectEvaluationModal from './SelectEvaluationModal.jsx';
+import { useAuth } from '../context/AuthContext';
 
 export default function NavBar() {
-  const [userEmail, setUserEmail] = useState(null);
+  const { userEmail } = useAuth();
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [theme, setTheme] = useState('light');
+  const location = useLocation();
+  const isWriteActive = location.pathname === '/evaluation-schreiben';
+  const isMeActive = location.pathname === '/me';
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -20,29 +24,6 @@ export default function NavBar() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadSession() {
-      const { data } = await supabase.auth.getSession();
-      if (active) {
-        setUserEmail(data.session?.user?.email ?? null);
-      }
-    }
-
-    loadSession();
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) {
-        setUserEmail(session?.user?.email ?? null);
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
-    };
-  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -58,9 +39,19 @@ export default function NavBar() {
       <nav className="nav">
         <Link to="/" className="nav-link">Home</Link>
         <button type="button" className="button secondary" onClick={() => setIsSelectOpen(true)}>
-          Evaluation ansehen
+          Evaluationen ansehen
         </button>
-        <Link to="/me" className="nav-link">Meine Bewertungen</Link>
+        <Link
+          to="/evaluation-schreiben"
+          className={`button secondary nav-pill${isWriteActive ? ' nav-pill--active' : ''}`}
+        >
+          Evaluation schreiben
+        </Link>
+        {userEmail && (
+          <Link to="/me" className={`button secondary nav-pill${isMeActive ? ' nav-pill--active' : ''}`}>
+            Meine Evaluationen
+          </Link>
+        )}
         <span className="nav-spacer" />
         <button
           type="button"

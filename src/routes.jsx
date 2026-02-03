@@ -3,6 +3,7 @@ import Home from './pages/Home.jsx';
 import Evaluations from './pages/Evaluations.tsx';
 import Login from './pages/Login.tsx';
 import MyEvaluations from './pages/MyEvaluations.tsx';
+import WriteEvaluation from './pages/WriteEvaluation.tsx';
 import NotFound from './pages/NotFound.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
@@ -17,6 +18,14 @@ export default function RoutesConfig() {
         element={
           <ProtectedRoute>
             <MyEvaluations />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluation-schreiben"
+        element={
+          <ProtectedRoute>
+            <WriteEvaluation />
           </ProtectedRoute>
         }
       />

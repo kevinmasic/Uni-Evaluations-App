@@ -4,6 +4,12 @@ create policy "users read own"
   on public.users for select
   using (auth.email() = email);
 
+drop policy if exists "users update own" on public.users;
+create policy "users update own"
+  on public.users for update
+  using (auth.email() = email)
+  with check (auth.email() = email);
+
 alter table public.standort enable row level security;
 drop policy if exists "standort read all" on public.standort;
 create policy "standort read all"
@@ -40,16 +46,52 @@ create policy "eval select public"
 
 create policy "eval insert own"
   on public.evaluations for insert
-  with check (auth.email() = user_email);
+  with check (
+    auth.email() = user_email
+    and exists (
+      select 1
+      from public.users u
+      join public.modul m on m.id = modul_id
+      where u.email = auth.email()
+        and u.studiengang_id = m.studiengang_id
+    )
+  );
 
 create policy "eval update own"
   on public.evaluations for update
-  using (auth.email() = user_email)
-  with check (auth.email() = user_email);
+  using (
+    auth.email() = user_email
+    and exists (
+      select 1
+      from public.users u
+      join public.modul m on m.id = modul_id
+      where u.email = auth.email()
+        and u.studiengang_id = m.studiengang_id
+    )
+  )
+  with check (
+    auth.email() = user_email
+    and exists (
+      select 1
+      from public.users u
+      join public.modul m on m.id = modul_id
+      where u.email = auth.email()
+        and u.studiengang_id = m.studiengang_id
+    )
+  );
 
 create policy "eval delete own"
   on public.evaluations for delete
-  using (auth.email() = user_email);
+  using (
+    auth.email() = user_email
+    and exists (
+      select 1
+      from public.users u
+      join public.modul m on m.id = modul_id
+      where u.email = auth.email()
+        and u.studiengang_id = m.studiengang_id
+    )
+  );
 
 alter table public.evaluation_votes enable row level security;
 drop policy if exists "eval votes read own" on public.evaluation_votes;
@@ -61,4 +103,14 @@ create policy "eval votes read own"
 
 create policy "eval votes insert own"
   on public.evaluation_votes for insert
-  with check (auth.uid() = voter_id);
+  with check (
+    auth.uid() = voter_id
+    and exists (
+      select 1
+      from public.users u
+      join public.evaluations e on e.evaluation_id = evaluation_id
+      join public.modul m on m.id = e.modul_id
+      where u.email = auth.email()
+        and u.studiengang_id = m.studiengang_id
+    )
+  );

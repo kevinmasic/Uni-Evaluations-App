@@ -74,6 +74,15 @@ select email, matriculation_number
 from users
 on conflict (email) do nothing;
 
+update public.users
+set studiengang_id = (
+  select sg.id
+  from public.studiengang sg
+  order by random()
+  limit 1
+)
+where studiengang_id is null;
+
 with module_seed as (
   select
     sg.id as studiengang_id,
@@ -121,10 +130,9 @@ phrases as (
     'Freundliche Betreuung.'
   ] as texts
 )
-insert into public.evaluations (content, rating, user_email, modul_id, created_at)
+insert into public.evaluations (content, user_email, modul_id, created_at)
 select
   phrases.texts[1 + ((ev_idx - 1) % array_length(phrases.texts, 1))],
-  1 + floor(random() * 5)::int,
   user_list.emails[1 + ((ev_idx - 1) % array_length(user_list.emails, 1))],
   m.id,
   now() - (random() * 120 || ' days')::interval
@@ -136,5 +144,5 @@ cross join phrases;
 -- Seed vote counts for sorting and color intensity.
 update public.evaluations
 set
-  upvotes = (rating * 2) + floor(random() * 6)::int,
-  downvotes = (6 - rating) + floor(random() * 3)::int;
+  upvotes = floor(random() * 10)::int,
+  downvotes = floor(random() * 6)::int;

@@ -207,11 +207,11 @@ export default function Home() {
             </p>
             <div className="hero__actions">
               <button type="button" className="button button--hero secondary" onClick={openSelectModal}>
-                Evaluation ansehen
+                Evaluationen ansehen
               </button>
-              <Link to="/me" className="button button--hero">Jetzt bewerten</Link>
+              <Link to="/evaluation-schreiben" className="button button--hero">Evaluation schreiben</Link>
             </div>
-            <span className="hero__tag">Anonym - 2 Minuten - Ehrlich & fair</span>
+            
           </div>
 
           <div className="hero__aside hero__visual">
@@ -227,6 +227,7 @@ export default function Home() {
       </header>
 
       <div className="ticker" aria-hidden="true">
+      
         <div className="ticker__track">
           <div className="ticker__content">
             <span>Feedback live - schnell - anonym - klar - direkt - fair</span>
@@ -241,70 +242,8 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="deck-section">
-        <span className="kicker">START HERE</span>
-        <h2>In 4 Schritten zur Evaluation.</h2>
-        <p className="deck-text">
-          Standort, Studiengang, Semester, Modul. Mehr brauchst du nicht.
-        </p>
-        <div className="deck-visual">
-          <ol className="step-list">
-            <li><span className="step-num">01</span> Standort</li>
-            <li><span className="step-num">02</span> Studiengang</li>
-            <li><span className="step-num">03</span> Semester</li>
-            <li><span className="step-num">04</span> Modul</li>
-          </ol>
-        </div>
-        <div className="deck-actions">
-          <button type="button" className="button secondary" onClick={openSelectModal}>
-            Evaluation ansehen
-          </button>
-          <Link to="/me" className="button">Jetzt bewerten</Link>
-        </div>
-      </section>
-
-      <section className="deck-section">
-        <span className="kicker">SIMPLE, DIRECT</span>
-        <h2>Kurze Antworten. Klare Signale.</h2>
-        <p className="deck-text">
-          Bewertungen sind schnell erstellt und sofort sichtbar. Dein Feedback zählt.
-        </p>
-        <div className="deck-visual">
-          <div className="stat-grid">
-            <div className="stat-card">
-              <strong>7</strong>
-              <span>Semester</span>
-            </div>
-            <div className="stat-card">
-              <strong>3</strong>
-              <span>Module je Semester</span>
-            </div>
-            <div className="stat-card">
-              <strong>2</strong>
-              <span>Minuten</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="deck-section">
-        <span className="kicker">SAFE, PRIVATE</span>
-        <h2>Anonym, fair, aggregiert.</h2>
-        <p className="deck-text">
-          Wir zeigen Zusammenfassungen, keine Einzelpersonen. So bleibt es sicher.
-        </p>
-        <div className="deck-visual">
-          <div className="tag-list">
-            <span className="tag">Anonym</span>
-            <span className="tag">Datenschutz</span>
-            <span className="tag">Kurz & klar</span>
-            <span className="tag">Für alle</span>
-          </div>
-        </div>
-      </section>
-
       <section className="deck-section testimonials">
-        <span className="kicker">STUDENTS SAY</span>
+      
         <h2>Stimmen aus dem Studium.</h2>
         <p className="deck-text menu-hint">
           Zieh die Kugel und lass sie los, um zufällige Bewertungen zu entdecken.
@@ -320,16 +259,35 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="deck-section deck-section--wide">
+        <span></span>
+        <h2>In 4 Schritten zur Evaluation.</h2>
+        <p className="deck-text">
+          Standort, Studiengang, Semester, Modul. Mehr brauchst du nicht.
+        </p>
+        <div className="deck-visual">
+          <ol className="step-list">
+            <li><span className="step-num">01</span> Standort</li>
+            <li><span className="step-num">02</span> Studiengang</li>
+            <li><span className="step-num">03</span> Semester</li>
+            <li><span className="step-num">04</span> Modul</li>
+          </ol>
+        </div>
+        
+      </section>
+
+     
+      
+
       <section className="cta-band">
         <div className="cta-band__inner">
-          <span className="kicker">READY</span>
           <h2>Feedback geben, wenn es zählt.</h2>
           <p className="deck-text">Starte jetzt und hilf, Lehre messbar zu verbessern.</p>
           <div className="hero__actions">
             <button type="button" className="button button--hero secondary" onClick={openSelectModal}>
-              Evaluation ansehen
+              Evaluationen ansehen
             </button>
-            <Link to="/me" className="button button--hero">Jetzt bewerten</Link>
+            <Link to="/evaluation-schreiben" className="button button--hero">Evaluation schreiben</Link>
           </div>
         </div>
       </section>

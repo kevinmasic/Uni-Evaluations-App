@@ -38,6 +38,23 @@ end $$;
 alter table public.studiengang
   alter column abschluss set not null;
 
+alter table public.users
+  add column if not exists studiengang_id uuid;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'users_studiengang_id_fkey'
+      and conrelid = 'public.users'::regclass
+  ) then
+    alter table public.users
+      add constraint users_studiengang_id_fkey
+      foreign key (studiengang_id) references public.studiengang(id) on delete restrict;
+  end if;
+end $$;
+
 create table if not exists public.semester (
   id uuid primary key default gen_random_uuid(),
   nummer int not null check (nummer between 1 and 7),
@@ -119,6 +136,9 @@ end $$;
 -- 2) Evaluations updates (idempotent)
 alter table public.evaluations
   add column if not exists modul_id uuid;
+
+alter table public.evaluations
+  drop column if exists rating;
 
 alter table public.evaluations
   add column if not exists upvotes int not null default 0;

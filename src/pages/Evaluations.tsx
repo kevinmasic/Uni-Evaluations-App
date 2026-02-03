@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
 
-type Modul = { id: string; name: string; professor: string | null };
+type Modul = { id: string; name: string; professor: string | null; studiengang_id: string | null };
 type Evaluation = {
   evaluation_id: number;
   content: string;
@@ -33,7 +34,14 @@ function getGrowFromScore(score: number) {
   return clamp(score, 0, 8);
 }
 
-const colorClasses = ['note--1', 'note--2', 'note--3', 'note--4'];
+function getHeatColorFromScore(score: number) {
+  const minScore = -5;
+  const maxScore = 5;
+  const clamped = clamp(score, minScore, maxScore);
+  const ratio = (clamped - minScore) / (maxScore - minScore);
+  const hue = 120 * (1 - ratio);
+  return `hsl(${hue}, 70%, 42%)`;
+}
 
 function getSizeClass(index: number, total: number, contentLength: number) {
   const xlCount = Math.max(1, Math.round(total * 0.12));
@@ -47,39 +55,19 @@ function getSizeClass(index: number, total: number, contentLength: number) {
   return '';
 }
 
-function getColorClass(index: number, total: number) {
-  if (total <= 1) return colorClasses[0];
-  const ratio = index / Math.max(1, total - 1);
-  if (ratio <= 0.25) return colorClasses[0];
-  if (ratio <= 0.5) return colorClasses[1];
-  if (ratio <= 0.75) return colorClasses[2];
-  return colorClasses[3];
-}
-
 export default function Evaluations() {
   const { modulId } = useParams();
   const [modul, setModul] = useState<Modul | null>(null);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [votesByEval, setVotesByEval] = useState<Record<number, number>>({});
   const [voteError, setVoteError] = useState<string | null>(null);
   const [votingId, setVotingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (active) setUserId(session?.user.id ?? null);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user.id ?? null);
-    });
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
+  const [listSort, setListSort] = useState<'date' | 'score-high' | 'score-low'>('date');
+  const { user, profile } = useAuth();
+  const userId = user?.id ?? null;
+  const userStudiengangId = profile?.studiengang_id ?? null;
 
   useEffect(() => {
     if (!modulId) {
@@ -96,7 +84,7 @@ export default function Evaluations() {
       const [modulRes, evalRes] = await Promise.all([
         supabase
           .from('modul')
-          .select('id, name, professor')
+          .select('id, name, professor, studiengang_id')
           .eq('id', modulId)
           .maybeSingle(),
         supabase
@@ -173,9 +161,29 @@ export default function Evaluations() {
     return list;
   }, [evaluations]);
 
+  const evaluationsByDate = useMemo(() => {
+    const list = [...evaluations];
+    list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return list;
+  }, [evaluations]);
+
+  const listEvaluations = useMemo(() => {
+    const list = [...evaluations];
+    list.sort((a, b) => {
+      if (listSort === 'date') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      const scoreDiff = getScore(b) - getScore(a);
+      if (scoreDiff !== 0) return listSort === 'score-high' ? scoreDiff : -scoreDiff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return list;
+  }, [evaluations, listSort]);
+
   async function handleVote(evaluationId: number, vote: 1 | -1) {
     if (!userId) return;
     if (votesByEval[evaluationId]) return;
+    if (!userStudiengangId || modul?.studiengang_id !== userStudiengangId) return;
 
     setVotingId(evaluationId);
     setVoteError(null);
@@ -219,63 +227,105 @@ export default function Evaluations() {
       {evaluations.length === 0 ? (
         <p>Noch keine Evaluationen vorhanden.</p>
       ) : (
-        <ul className="notes-grid notes-grid--bento">
-          {sortedEvaluations.map((item, index) => {
-            const score = getScore(item);
+        <div className="evaluations-split">
+          <section className="evaluations-panel">
+            <ul className="notes-grid notes-grid--bento notes-grid--compact">
+              {sortedEvaluations.map((item, index) => {
+                const score = getScore(item);
             const intensity = getIntensityFromScore(score);
             const grow = getGrowFromScore(score);
             const sizeClass = getSizeClass(index, sortedEvaluations.length, item.content.length);
-            const colorClass = getColorClass(index, sortedEvaluations.length);
-            const hasVoted = votesByEval[item.evaluation_id] !== undefined;
-            const isDisabled = !userId || hasVoted || votingId === item.evaluation_id;
-            const hint = !userId
-              ? 'Bitte einloggen, um zu bewerten.'
-              : hasVoted
-                ? 'Du hast bereits gevotet.'
-                : 'Bewertung abgeben';
+            const heatColor = getHeatColorFromScore(score);
 
             return (
               <li
                 key={item.evaluation_id}
-                className={`note ${colorClass} ${sizeClass}`}
-                style={{ '--note-intensity': intensity, '--note-grow': grow } as CSSProperties}
+                className={`note ${sizeClass}`}
+                style={
+                  { '--note-intensity': intensity, '--note-grow': grow, '--note-base': heatColor } as CSSProperties
+                }
               >
-                <div className="note__content">{item.content}</div>
-                <div className="note__footer">
-                  <span className="note__meta">{formatDate(item.created_at)}</span>
-                  <div className="note__votes">
-                    <span className="vote-tooltip" title={hint}>
-                      <button
-                        className="vote-button"
-                        type="button"
-                        disabled={isDisabled}
-                        onClick={() => handleVote(item.evaluation_id, 1)}
-                        aria-label="Upvote"
-                      >
-                        <span className="vote-icon vote-icon--up" aria-hidden="true" />
-                      </button>
-                    </span>
-                    <span className="vote-count">{item.upvotes}</span>
-                    <span className="vote-tooltip" title={hint}>
-                      <button
-                        className="vote-button"
-                        type="button"
-                        disabled={isDisabled}
-                        onClick={() => handleVote(item.evaluation_id, -1)}
-                        aria-label="Downvote"
-                      >
-                        <span className="vote-icon vote-icon--down" aria-hidden="true" />
-                      </button>
-                    </span>
-                    <span className="vote-count">{item.downvotes}</span>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    <div className="note__content">{item.content}</div>
+                    <div className="note__footer">
+                      <span className="note__meta">{formatDate(item.created_at)}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <section className="evaluations-panel evaluations-panel--list">
+            <div className="evaluations-filter">
+              <label className="evaluations-filter__label" htmlFor="list-sort">
+                Sortieren nach
+              </label>
+              <select
+                id="list-sort"
+                className="select evaluations-filter__select"
+                value={listSort}
+                onChange={event => setListSort(event.target.value as typeof listSort)}
+              >
+                <option value="date">Datum (neueste zuerst)</option>
+                <option value="score-high">Voting-Score (höchster zuerst)</option>
+                <option value="score-low">Voting-Score (niedrigster zuerst)</option>
+              </select>
+            </div>
+            <ul className="list list--cards evaluations-list">
+              {listEvaluations.map(item => {
+                const hasVoted = votesByEval[item.evaluation_id] !== undefined;
+                const canVote = Boolean(userId && userStudiengangId && modul?.studiengang_id === userStudiengangId);
+                const isDisabled = !canVote || hasVoted || votingId === item.evaluation_id;
+                const hint = !userId
+                  ? 'Bitte einloggen, um zu bewerten.'
+                  : !userStudiengangId
+                    ? 'Kein Studiengang hinterlegt.'
+                    : modul?.studiengang_id !== userStudiengangId
+                      ? 'Nur für den eigenen Studiengang erlaubt.'
+                  : hasVoted
+                    ? 'Du hast bereits gevotet.'
+                    : 'Bewertung abgeben';
+
+                return (
+                  <li key={item.evaluation_id} className="evaluations-list__item">
+                    <div className="evaluations-list__content">{item.content}</div>
+                    <div className="evaluations-list__meta">
+                      <span>{formatDate(item.created_at)}</span>
+                      <div className="note__votes">
+                        <span className="vote-tooltip" title={hint}>
+                          <button
+                            className="vote-button"
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => handleVote(item.evaluation_id, 1)}
+                            aria-label="Upvote"
+                          >
+                            <span className="vote-icon vote-icon--up" aria-hidden="true" />
+                          </button>
+                        </span>
+                        <span className="vote-count">{item.upvotes}</span>
+                        <span className="vote-tooltip" title={hint}>
+                          <button
+                            className="vote-button"
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => handleVote(item.evaluation_id, -1)}
+                            aria-label="Downvote"
+                          >
+                            <span className="vote-icon vote-icon--down" aria-hidden="true" />
+                          </button>
+                        </span>
+                        <span className="vote-count">{item.downvotes}</span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {voteError && <p className="error-text">Fehler beim Bewerten: {voteError}</p>}
+          </section>
+        </div>
       )}
-      {voteError && <p className="error-text">Fehler beim Bewerten: {voteError}</p>}
     </div>
   );
 }

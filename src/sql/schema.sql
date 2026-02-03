@@ -22,6 +22,9 @@ create table if not exists public.studiengang (
   constraint studiengang_abschluss_check check (abschluss in ('Bachelor', 'Master'))
 );
 
+alter table public.users
+  add column if not exists studiengang_id uuid references public.studiengang(id) on delete restrict;
+
 create table if not exists public.semester (
   id uuid primary key default gen_random_uuid(),
   nummer int not null check (nummer between 1 and 7),
@@ -41,7 +44,6 @@ create table if not exists public.modul (
 create table if not exists public.evaluations (
   evaluation_id bigserial primary key,
   content text not null,
-  rating int not null check (rating between 1 and 5),
   user_email text,
   modul_id uuid not null references public.modul(id) on delete cascade,
   upvotes int not null default 0,
