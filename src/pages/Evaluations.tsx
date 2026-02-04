@@ -19,7 +19,7 @@ function formatDate(value: string) {
 }
 
 function getScore(item: Evaluation) {
-  return (item.upvotes ?? 0) - (item.downvotes ?? 0);
+  return Math.abs((item.upvotes ?? 0) - (item.downvotes ?? 0));
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -64,7 +64,7 @@ export default function Evaluations() {
   const [votesByEval, setVotesByEval] = useState<Record<number, number>>({});
   const [voteError, setVoteError] = useState<string | null>(null);
   const [votingId, setVotingId] = useState<number | null>(null);
-  const [listSort, setListSort] = useState<'date' | 'score-high' | 'score-low'>('date');
+  const [listSort, setListSort] = useState<'date' | 'activity' | 'upvotes' | 'downvotes'>('date');
   const { user, profile } = useAuth();
   const userId = user?.id ?? null;
   const userStudiengangId = profile?.studiengang_id ?? null;
@@ -173,8 +173,21 @@ export default function Evaluations() {
       if (listSort === 'date') {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-      const scoreDiff = getScore(b) - getScore(a);
-      if (scoreDiff !== 0) return listSort === 'score-high' ? scoreDiff : -scoreDiff;
+
+      if (listSort === 'activity') {
+        const diff = Math.abs(getScore(b)) - Math.abs(getScore(a));
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+
+      if (listSort === 'upvotes') {
+        const diff = (b.upvotes ?? 0) - (a.upvotes ?? 0);
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+
+      const diff = (b.downvotes ?? 0) - (a.downvotes ?? 0);
+      if (diff !== 0) return diff;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return list;
@@ -218,17 +231,29 @@ export default function Evaluations() {
 
   return (
     <div className="card">
-      <span className="bubble bubble--mint bubble--sm">Modul</span>
-      <h2>
-        {modul ? `${modul.name}${modul.professor ? ` - ${modul.professor}` : ''}` : 'Modul nicht gefunden'}
-      </h2>
+      <div className="evaluations-title">
+        {modul ? (
+          <>
+            <span className="evaluations-title__label">Modul</span>
+            <span className="evaluations-title__value">{modul.name || 'Modul'}</span>
+            {modul.professor && (
+              <>
+                <span className="evaluations-title__label">Professor / Dozent</span>
+                <span className="evaluations-title__value">{modul.professor}</span>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="evaluations-title__value">Modul nicht gefunden</span>
+        )}
+      </div>
       <p className="muted">Evaluationen aus diesem Modul.</p>
 
       {evaluations.length === 0 ? (
         <p>Noch keine Evaluationen vorhanden.</p>
       ) : (
         <div className="evaluations-split">
-          <section className="evaluations-panel">
+          <section className="evaluations-panel evaluations-panel--notes">
             <ul className="notes-grid notes-grid--bento notes-grid--compact">
               {sortedEvaluations.map((item, index) => {
                 const score = getScore(item);
@@ -267,8 +292,9 @@ export default function Evaluations() {
                 onChange={event => setListSort(event.target.value as typeof listSort)}
               >
                 <option value="date">Datum (neueste zuerst)</option>
-                <option value="score-high">Voting-Score (höchster zuerst)</option>
-                <option value="score-low">Voting-Score (niedrigster zuerst)</option>
+                <option value="activity">Voting-Aktivität (höchste zuerst)</option>
+                <option value="upvotes">Meiste Upvotes</option>
+                <option value="downvotes">Meiste Downvotes</option>
               </select>
             </div>
             <ul className="list list--cards evaluations-list">

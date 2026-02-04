@@ -23,9 +23,13 @@ export default function MyEvaluations() {
   const [modules, setModules] = useState<Modul[]>([]);
   const [items, setItems] = useState<Evaluation[]>([]);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draftContent, setDraftContent] = useState('');
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [listSort, setListSort] = useState<'date' | 'score-high' | 'score-low'>('date');
+  const [listSort, setListSort] = useState<'date' | 'activity' | 'upvotes' | 'downvotes'>('date');
   const { userEmail, loading: authLoading } = useAuth();
 
   const moduleById = useMemo(() => new Map(modules.map(item => [item.id, item])), [modules]);
@@ -35,10 +39,23 @@ export default function MyEvaluations() {
       if (listSort === 'date') {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-      const scoreA = (a.upvotes ?? 0) - (a.downvotes ?? 0);
-      const scoreB = (b.upvotes ?? 0) - (b.downvotes ?? 0);
-      const diff = scoreB - scoreA;
-      if (diff !== 0) return listSort === 'score-high' ? diff : -diff;
+
+      if (listSort === 'activity') {
+        const scoreA = Math.abs((a.upvotes ?? 0) - (a.downvotes ?? 0));
+        const scoreB = Math.abs((b.upvotes ?? 0) - (b.downvotes ?? 0));
+        const diff = scoreB - scoreA;
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+
+      if (listSort === 'upvotes') {
+        const diff = (b.upvotes ?? 0) - (a.upvotes ?? 0);
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+
+      const diff = (b.downvotes ?? 0) - (a.downvotes ?? 0);
+      if (diff !== 0) return diff;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return list;
@@ -81,6 +98,61 @@ export default function MyEvaluations() {
     setItems(prev => prev.filter(item => item.evaluation_id !== id));
   }
 
+  function startEdit(item: Evaluation) {
+    setEditingId(item.evaluation_id);
+    setDraftContent(item.content || '');
+    setError(null);
+    setStatus(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setDraftContent('');
+  }
+
+  async function handleSaveEdit(id: number) {
+    if (!userEmail) return setError('Nicht eingeloggt');
+    const nextContent = draftContent.trim();
+    if (!nextContent) {
+      setError('Bitte einen Text angeben.');
+      setStatus(null);
+      return;
+    }
+
+    setSavingId(id);
+    setError(null);
+    setStatus(null);
+    const { data, error } = await supabase
+      .from('evaluations')
+      .update({ content: nextContent })
+      .eq('evaluation_id', id)
+      .select('evaluation_id, content');
+
+    if (error) {
+      setError(error.message);
+      setStatus(null);
+      setSavingId(null);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setError('Update nicht erlaubt oder Eintrag nicht gefunden.');
+      setStatus(null);
+      setSavingId(null);
+      return;
+    }
+
+    const updated = data[0];
+    setItems(prev =>
+      prev.map(item =>
+        item.evaluation_id === id ? { ...item, content: updated.content } : item
+      )
+    );
+    setSavingId(null);
+    cancelEdit();
+    setStatus('Evaluation erfolgreich aktualisiert.');
+  }
+
   if (loading) return <p>Lade...</p>;
   if (error) return <p className="error-text">Fehler: {error}</p>;
 
@@ -104,8 +176,9 @@ export default function MyEvaluations() {
               onChange={event => setListSort(event.target.value as typeof listSort)}
             >
               <option value="date">Datum (neueste zuerst)</option>
-              <option value="score-high">Voting-Score (höchster zuerst)</option>
-              <option value="score-low">Voting-Score (niedrigster zuerst)</option>
+              <option value="activity">Voting-Aktivität (höchste zuerst)</option>
+              <option value="upvotes">Meiste Upvotes</option>
+              <option value="downvotes">Meiste Downvotes</option>
             </select>
           </div>
           <ul className="list list--cards evaluations-list">
@@ -117,20 +190,43 @@ export default function MyEvaluations() {
 
               return (
                 <li key={item.evaluation_id} className="evaluations-list__item">
-                  <div className="evaluations-list__content">{item.content}</div>
-                  <div className="evaluations-list__meta">
-                    <div className="list-item__row">
-                      <span className="badge">{modulLabel}</span>
-                      <span className="badge">{formatDate(item.created_at)}</span>
+                  {editingId === item.evaluation_id ? (
+                    <textarea
+                      className="input"
+                      rows={3}
+                      value={draftContent}
+                      onChange={event => setDraftContent(event.target.value)}
+                    />
+                  ) : (
+                    <div className="evaluations-list__content">{item.content}</div>
+                  )}
+                  <div className="evaluations-list__meta evaluations-list__meta--inline">
+                    <span className="badge badge--truncate">{modulLabel}</span>
+                    <span className="badge">{formatDate(item.created_at)}</span>
+                    <div className="note__votes note__votes--static">
+                      <span className="vote-icon vote-icon--up" aria-hidden="true" />
+                      <span className="vote-count">{item.upvotes}</span>
+                      <span className="vote-icon vote-icon--down" aria-hidden="true" />
+                      <span className="vote-count">{item.downvotes}</span>
                     </div>
-                    <div className="list-item__row">
-                      <div className="note__votes note__votes--static">
-                        <span className="vote-icon vote-icon--up" aria-hidden="true" />
-                        <span className="vote-count">{item.upvotes}</span>
-                        <span className="vote-icon vote-icon--down" aria-hidden="true" />
-                        <span className="vote-count">{item.downvotes}</span>
-                      </div>
-                      <button className="button" onClick={() => setConfirmId(item.evaluation_id)}>Löschen</button>
+                    <div className="evaluations-actions">
+                      {editingId === item.evaluation_id ? (
+                        <>
+                          <button
+                            className="button"
+                            onClick={() => handleSaveEdit(item.evaluation_id)}
+                            disabled={savingId === item.evaluation_id}
+                          >
+                            {savingId === item.evaluation_id ? 'Speichere...' : 'Speichern'}
+                          </button>
+                          <button className="button secondary" onClick={cancelEdit}>Abbrechen</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="button secondary" onClick={() => startEdit(item)}>Bearbeiten</button>
+                          <button className="button" onClick={() => setConfirmId(item.evaluation_id)}>Löschen</button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -139,6 +235,8 @@ export default function MyEvaluations() {
           </ul>
         </div>
       )}
+
+      {status && <p className="muted">{status}</p>}
 
       {confirmId !== null && (
         <div className="modal-overlay" role="presentation" onClick={() => setConfirmId(null)}>

@@ -135,7 +135,7 @@ export default function Home() {
         return;
       }
 
-      const scores = safeData.map(item => (item.upvotes ?? 0) - (item.downvotes ?? 0));
+      const scores = safeData.map(item => Math.abs((item.upvotes ?? 0) - (item.downvotes ?? 0)));
       const minScore = Math.min(...scores);
       const maxScore = Math.max(...scores);
 
@@ -175,7 +175,7 @@ export default function Home() {
         .map(item => {
           const modulInfo = Array.isArray(item.modul) ? item.modul[0] : item.modul;
           const modulName = cleanText(modulInfo?.name) || 'Modul';
-          const palette = pickPalette((item.upvotes ?? 0) - (item.downvotes ?? 0));
+          const palette = pickPalette(Math.abs((item.upvotes ?? 0) - (item.downvotes ?? 0)));
           const image = buildMenuImage({ content: item.content, palette });
           return {
             image,
@@ -200,7 +200,6 @@ export default function Home() {
       <header className="hero hero--deck">
         <div className="hero__grid">
           <div className="hero__copy">
-            <span className="kicker">EVALUATIONSPORTAL</span>
             <h1 className="hero__title">Dein Feedback. Direkt.</h1>
             <p className="hero__lead">
               Kurze Rückmeldungen für bessere Lehre. Schnell, anonym, klar.
@@ -243,7 +242,7 @@ export default function Home() {
       </div>
 
       <section className="deck-section testimonials">
-      
+      <span></span>
         <h2>Stimmen aus dem Studium.</h2>
         <p className="deck-text menu-hint">
           Zieh die Kugel und lass sie los, um zufällige Bewertungen zu entdecken.
