@@ -228,7 +228,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
             onChange={event => handleSelectAbschluss(event.target.value)}
             disabled={!selectedStandortId}
           >
-            <option value="">{selectedStandortId ? 'Abschluss wählen' : 'Bitte erst Standort wählen'}</option>
+            <option value="">{'Abschluss wählen'}</option>
             <option value="Bachelor">Bachelor</option>
             <option value="Master">Master</option>
           </select>
@@ -240,11 +240,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
             disabled={!selectedStandortId || !selectedAbschluss || loadingStudiengaenge}
           >
             <option value="">
-              {!selectedStandortId
-                ? 'Bitte erst Standort wählen'
-                : (!selectedAbschluss
-                  ? 'Bitte erst Abschluss wählen'
-                  : (loadingStudiengaenge ? 'Lade Studiengänge...' : 'Studiengang wählen'))}
+              {loadingStudiengaenge ? 'Lade Studiengänge...' : 'Studiengang wählen'}
             </option>
             {studiengaenge.map(item => (
               <option key={item.id} value={item.id}>{item.name}</option>
@@ -258,9 +254,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
             disabled={!selectedStudiengangId || loadingSemester}
           >
             <option value="">
-              {!selectedStudiengangId
-                ? 'Bitte erst Studiengang wählen'
-                : (loadingSemester ? 'Lade Semester...' : 'Semester wählen')}
+              {loadingSemester ? 'Lade Semester...' : 'Semester wählen'}
             </option>
             {semesterList.map(item => (
               <option key={item.id} value={item.id}>
@@ -276,9 +270,7 @@ export default function SelectEvaluationModal({ isOpen, onClose }) {
             disabled={!selectedSemesterId || loadingModule}
           >
             <option value="">
-              {!selectedSemesterId
-                ? 'Bitte erst Semester wählen'
-                : (loadingModule ? 'Lade Module...' : 'Modul wählen')}
+              {loadingModule ? 'Lade Module...' : 'Modul wählen'}
             </option>
             {moduleList.map(item => (
               <option key={item.id} value={item.id}>
