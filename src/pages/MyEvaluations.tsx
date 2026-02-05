@@ -176,7 +176,7 @@ export default function MyEvaluations() {
               onChange={event => setListSort(event.target.value as typeof listSort)}
             >
               <option value="date">Datum (neueste zuerst)</option>
-              <option value="activity">Voting-Aktivität (höchste zuerst)</option>
+              <option value="activity">Voting-Aktivität (Betrag der Voting-Differenz)</option>
               <option value="upvotes">Meiste Upvotes</option>
               <option value="downvotes">Meiste Downvotes</option>
             </select>

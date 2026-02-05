@@ -790,8 +790,8 @@ p {
   inset: 0;
   border-radius: inherit;
   background: var(--note-base, var(--note-1));
-  filter: saturate(calc(0.9 + var(--note-intensity) * 1.8))
-    brightness(calc(1.02 - var(--note-intensity) * 0.18));
+  filter: saturate(calc(0.7 + var(--note-intensity) * 0.8))
+    brightness(calc(1.08 - var(--note-intensity) * 0.06));
   z-index: 0;
 }
 

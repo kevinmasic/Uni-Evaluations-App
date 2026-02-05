@@ -35,12 +35,12 @@ function getGrowFromScore(score: number) {
 }
 
 function getHeatColorFromScore(score: number) {
-  const minScore = -5;
-  const maxScore = 5;
+  const minScore: number = 0;
+  const maxScore: number = 8;
   const clamped = clamp(score, minScore, maxScore);
-  const ratio = (clamped - minScore) / (maxScore - minScore);
+  const ratio = clamped / maxScore;
   const hue = 120 * (1 - ratio);
-  return `hsl(${hue}, 70%, 42%)`;
+  return `hsl(${hue}, 55%, 64%)`;
 }
 
 function getSizeClass(index: number, total: number, contentLength: number) {
@@ -292,7 +292,7 @@ export default function Evaluations() {
                 onChange={event => setListSort(event.target.value as typeof listSort)}
               >
                 <option value="date">Datum (neueste zuerst)</option>
-                <option value="activity">Voting-Aktivität (höchste zuerst)</option>
+                <option value="activity">Voting-Aktivität (Betrag der Voting-Differenz)</option>
                 <option value="upvotes">Meiste Upvotes</option>
                 <option value="downvotes">Meiste Downvotes</option>
               </select>
