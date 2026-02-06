@@ -12,28 +12,34 @@ type Evaluation = {
   downvotes: number;
 };
 
+// Format a backend timestamp into a German date string for display.
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('de-DE', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+// Voting "activity" score used for heat/size and sorting.
 function getScore(item: Evaluation) {
   return Math.abs((item.upvotes ?? 0) - (item.downvotes ?? 0));
 }
 
+// Utility for clamping numeric UI values.
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Derive visual intensity from the score for the note grid.
 function getIntensityFromScore(score: number) {
   return clamp(0.3 + score * 0.12, 0.08, 1);
 }
 
+// Derive a CSS grow value from the score for bento sizing.
 function getGrowFromScore(score: number) {
   return clamp(score, 0, 8);
 }
 
+// Map score to a green-to-red heat color for the note background.
 function getHeatColorFromScore(score: number) {
   const minScore: number = 0;
   const maxScore: number = 8;
@@ -43,6 +49,7 @@ function getHeatColorFromScore(score: number) {
   return `hsl(${hue}, 55%, 64%)`;
 }
 
+// Pick a size class for the bento grid layout based on index/length.
 function getSizeClass(index: number, total: number, contentLength: number) {
   const xlCount = Math.max(1, Math.round(total * 0.12));
   const wideCount = Math.max(2, Math.round(total * 0.3));
@@ -69,6 +76,7 @@ export default function Evaluations() {
   const userId = user?.id ?? null;
   const userStudiengangId = profile?.studiengang_id ?? null;
 
+  // Load module metadata and its evaluations for the selected module id.
   useEffect(() => {
     if (!modulId) {
       setError('Modul fehlt.');
@@ -116,6 +124,7 @@ export default function Evaluations() {
     };
   }, [modulId]);
 
+  // Load the current user's votes to disable repeat voting and show state.
   useEffect(() => {
     if (!userId || evaluations.length === 0) {
       setVotesByEval({});
@@ -151,6 +160,7 @@ export default function Evaluations() {
     };
   }, [userId, evaluations]);
 
+  // Sorted list for the visual bento grid (by activity, then recency).
   const sortedEvaluations = useMemo(() => {
     const list = [...evaluations];
     list.sort((a, b) => {
@@ -161,12 +171,14 @@ export default function Evaluations() {
     return list;
   }, [evaluations]);
 
+  // Simple list sorted by date (used for default ordering in list view).
   const evaluationsByDate = useMemo(() => {
     const list = [...evaluations];
     list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return list;
   }, [evaluations]);
 
+  // List view ordering based on current UI selection.
   const listEvaluations = useMemo(() => {
     const list = [...evaluations];
     list.sort((a, b) => {
@@ -193,6 +205,7 @@ export default function Evaluations() {
     return list;
   }, [evaluations, listSort]);
 
+  // Cast an upvote/downvote via RPC and update local state.
   async function handleVote(evaluationId: number, vote: 1 | -1) {
     if (!userId) return;
     if (votesByEval[evaluationId]) return;

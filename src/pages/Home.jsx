@@ -243,6 +243,8 @@ export default function Home() {
 
       <section className="deck-section testimonials">
       <span></span>
+      <span></span>
+      <span></span>
         <h2>Stimmen aus dem Studium.</h2>
         <p className="deck-text menu-hint">
           Zieh die Kugel und lass sie los, um zufällige Bewertungen zu entdecken.
